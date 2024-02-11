@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include <vector>
 #include <string>
 #include <sstream>
@@ -43,14 +44,7 @@ void InputTextWithHint(const std::string& label, const std::string& hint, std::s
     data = buffer;
 }
 
-void digitButton(std::string& output, char d) {
-    if (ImGui::Button(std::string(1, d).c_str(), ImVec2(40, 40))) {
-        if (output == "0") {
-            output = "";
-        }
-        output += d;
-    }
-}
+std::set<char> ops = { '+', '-', 'X', '/' };
 
 char intToDigit(const int& i) {
     if (0 <= i && i <= 9) {
@@ -60,14 +54,22 @@ char intToDigit(const int& i) {
         return 'A' + i - 10;
     }
 }
+int digitToInt(const char& c) {
+    if ('0' <= c && c <= '9') {
+        return c - '0';
+    }
+    else {
+        return c - 'A' + 10;
+    }
+}
 
 void eval(std::string& output, const int& base, const int& accuracy) {
-    bool beforeComma = true;
+    bool commaAlready = false;
     bool first = true;
 
-    double dAns = 0.f;
-    double dRhs = 0.f;
-    double order = 1.f;
+    long double dAns = 0.f;
+    long double dRhs = 0.f;
+    long double order = 1.f;
 
     char op = 0;
 
@@ -77,15 +79,15 @@ void eval(std::string& output, const int& base, const int& accuracy) {
             dAns *= order;
 
             first = false;
-            beforeComma = true;
+            commaAlready = false;
             order = 1.f;
             continue;
         }
         if (el == '.') {
-            beforeComma = false;
+            commaAlready = true;
             continue;
         }
-        if (!beforeComma) {
+        if (commaAlready) {
             order /= base;
         }
         if (first) {
@@ -112,19 +114,22 @@ void eval(std::string& output, const int& base, const int& accuracy) {
         dAns -= dRhs;
         dAns = std::abs(dAns);
     }
-    double maxPower = 1.f / std::powl(base, accuracy);
-    while (dAns > maxPower) {
-        maxPower *= base;
+    long double maxPower = 1.f / std::powl(base, accuracy);
+	if (dAns > maxPower) { //looks crazy, but it works
+        while (dAns > maxPower) {
+            maxPower *= base;
+        }
+        maxPower /= base;
     }
-    maxPower /= base;
     output = "";
-    bool commaAlready = false;
+    commaAlready = false;
     if (maxPower < 0.9) {
         output += '0';
-        output += '.';
+        if (accuracy) output += '.';
         commaAlready = true;
     }
-    double dAnsCp = dAns;
+    long double dAnsCp = dAns;
+	maxPower = std::max(maxPower, 1. / (long double)base);
     while (maxPower * 1.5 > 1.f / std::powl(base, accuracy)) {
         int digit = 0;
         while (dAnsCp > maxPower) {
@@ -136,6 +141,34 @@ void eval(std::string& output, const int& base, const int& accuracy) {
         if (maxPower < 0.99 && !commaAlready && accuracy) {
             output += ".";
             commaAlready = true;
+        }
+    }
+}
+
+void digitButton(std::string& output, char d, ImVec2 wSize) {
+    if (ImGui::Button(std::string(1, d).c_str(), ImVec2(40 * wSize.x / 1920, 40 * wSize.y / 1440))) {
+        if ((output == "0" || output.back() == '0' && ops.find(output[output.size() - 2]) != ops.end()) && d == '0') {
+            return;
+        }
+        if (output == "0") {
+            output = "";
+        }
+        output += d;
+    }
+}
+
+void operatorButton(std::string& output, char oper, bool& op, bool& commaAlready, int base, int accuracy, ImVec2 wSize) {
+    if (ImGui::Button(std::string(1, oper).c_str(), ImVec2(40 * wSize.x / 1920, 40 * wSize.y / 1440))) {
+        if (ops.find(output.back()) != ops.end()) {
+            output.back() = oper;
+        }
+        else {
+            if (op) {
+                eval(output, base, accuracy);
+            }
+            commaAlready = false;
+            op = true;
+            output += oper;
         }
     }
 }
@@ -194,7 +227,8 @@ int main(int, char**)
     bool openNumSysWindow = false;
     bool openAccuracyWindow = false;
 
-    std::set<char> ops = { '+', '-', 'X', '/' };
+    bool op = false;
+    bool commaAlready = false;
 
 
 #ifdef __EMSCRIPTEN__
@@ -215,54 +249,60 @@ int main(int, char**)
         glfwGetWindowSize(window, &tmp1, &tmp2);
         ImVec2 wSize(tmp1, tmp2);
 
+        ImGui::SetNextWindowSize({ 0.15f * wSize.x, 0.25f * wSize.y });
         ImGui::Begin("Calculator");
         ImGui::SetWindowFontScale(1.2);
 
-        InputTextWithHint("Result", "", output, ImGuiInputTextFlags_ReadOnly);
+        InputTextWithHint("Calculations", "", output, ImGuiInputTextFlags_ReadOnly);
 
-        if (ImGui::Button("C", ImVec2(40, 40))) {
+        if (ImGui::Button("Cl", ImVec2(40 * wSize.x / 1920, 40 * wSize.y / 1440))) {
             output = "0";
+			commaAlready = false;
+			op = false;
         } ImGui::SameLine();
-        if (ImGui::Button("NS", ImVec2(40, 40))) {
+        if (ImGui::Button("NS", ImVec2(40 * wSize.x / 1920, 40 * wSize.y / 1440))) {
             baseTmp = base;
             openNumSysWindow = true;
         } ImGui::SameLine();
-        if (ImGui::Button("A", ImVec2(40, 40))) {
+        if (ImGui::Button("Ac", ImVec2(40 * wSize.x / 1920, 40 * wSize.y / 1440))) {
             accuracyTmp = accuracy;
             openAccuracyWindow = true;
+		} ImGui::SameLine();
+        if (ImGui::Button(".", ImVec2(40 * wSize.x / 1920, 40 * wSize.y / 1440)) && !commaAlready) {
+            output += '.';
+            commaAlready = true;
         } ImGui::SameLine();
-        if (ImGui::Button("/", ImVec2(40, 40)) && ops.find(output.back()) == ops.end()) {
-            output += '/';
-        }
-
-        digitButton(output, '7'); ImGui::SameLine();
-        digitButton(output, '8'); ImGui::SameLine();
-        digitButton(output, '9'); ImGui::SameLine();
-        if (ImGui::Button("*", ImVec2(40, 40)) && ops.find(output.back()) == ops.end()) {
-            output += '*';
-        }
-
-        digitButton(output, '4'); ImGui::SameLine();
-        digitButton(output, '5'); ImGui::SameLine();
-        digitButton(output, '6'); ImGui::SameLine();
-        if (ImGui::Button("-", ImVec2(40, 40)) && ops.find(output.back()) == ops.end()) {
-            output += '-';
-        }
-
-        digitButton(output, '1'); ImGui::SameLine();
-        digitButton(output, '2'); ImGui::SameLine();
-        digitButton(output, '3'); ImGui::SameLine();
-        if (ImGui::Button("+", ImVec2(40, 40)) && ops.find(output.back()) == ops.end()) {
-            output += '+';
-        }
-
-        if (ImGui::Button(".", ImVec2(40, 40))) {
-			output += '.';
-        } ImGui::SameLine();
-        digitButton(output, '0'); ImGui::SameLine();
-        if (ImGui::Button("=", ImVec2(40, 40))) {
+        if (ImGui::Button("=", ImVec2(40 * wSize.x / 1920, 40 * wSize.y / 1440)) && ops.find(output.back()) == ops.end() && op) {
             eval(output, base, accuracy);
+            op = false;
+            commaAlready = false;
         }
+
+        if (digitToInt('C') < base) { digitButton(output, 'C', wSize);  }
+		if (digitToInt('D') < base) { ImGui::SameLine(); digitButton(output, 'D', wSize); }
+        if (digitToInt('E') < base) { ImGui::SameLine(); digitButton(output, 'E', wSize); }
+        if (digitToInt('F') < base) { ImGui::SameLine(); digitButton(output, 'F', wSize); }
+
+        if (digitToInt('8') < base) { digitButton(output, '8', wSize); }
+        if (digitToInt('9') < base) { ImGui::SameLine(); digitButton(output, '9', wSize); }
+        if (digitToInt('A') < base) { ImGui::SameLine(); digitButton(output, 'A', wSize); }
+        if (digitToInt('B') < base) { ImGui::SameLine(); digitButton(output, 'B', wSize); }
+
+        if (digitToInt('4') < base) { digitButton(output, '4', wSize); }
+        if (digitToInt('5') < base) { ImGui::SameLine(); digitButton(output, '5', wSize); }
+        if (digitToInt('6') < base) { ImGui::SameLine(); digitButton(output, '6', wSize); }
+        if (digitToInt('7') < base) { ImGui::SameLine(); digitButton(output, '7', wSize); }
+
+        if (digitToInt('0') < base) { digitButton(output, '0', wSize); }
+        if (digitToInt('1') < base) { ImGui::SameLine(); digitButton(output, '1', wSize); }
+        if (digitToInt('2') < base) { ImGui::SameLine(); digitButton(output, '2', wSize); }
+        if (digitToInt('3') < base) { ImGui::SameLine(); digitButton(output, '3', wSize); }
+        
+		operatorButton(output, '+', op, commaAlready, base, accuracy, wSize); ImGui::SameLine();
+        operatorButton(output, '-', op, commaAlready, base, accuracy, wSize); ImGui::SameLine();
+        operatorButton(output, '*', op, commaAlready, base, accuracy, wSize); ImGui::SameLine();
+        operatorButton(output, '/', op, commaAlready, base, accuracy, wSize);
+
 
         if (openNumSysWindow) {
             ImGui::Begin("Numerical system");
