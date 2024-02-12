@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <set>
 #include <cmath>
+#include <Windows.h>
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
@@ -34,6 +35,9 @@ static void glfw_error_callback(int error, const char* description)
 ImVec2 operator+(ImVec2& lhs, ImVec2& rhs) {
     return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y);
 }
+ImVec4 operator*(const ImVec4& lhs, float rhs) {
+    return ImVec4(lhs.x * rhs, lhs.y * rhs, lhs.z * rhs, lhs.w * rhs);
+}
 
 void InputTextWithHint(const std::string& label, const std::string& hint, std::string& data, ImGuiInputTextFlags flags = 0) {
     char buffer[256];
@@ -45,6 +49,7 @@ void InputTextWithHint(const std::string& label, const std::string& hint, std::s
 }
 
 std::set<char> ops = { '+', '-', 'X', '/' };
+int dpi = GetDpiForSystem();
 
 char intToDigit(const int& i) {
     if (0 <= i && i <= 9) {
@@ -145,20 +150,33 @@ void eval(std::string& output, const int& base, const int& accuracy) {
     }
 }
 
-void digitButton(std::string& output, char d, ImVec2 wSize) {
-    if (ImGui::Button(std::string(1, d).c_str(), ImVec2(40 * wSize.x / 1920, 40 * wSize.y / 1440))) {
-        if ((output == "0" || output.back() == '0' && ops.find(output[output.size() - 2]) != ops.end()) && d == '0') {
-            return;
-        }
-        if (output == "0") {
-            output = "";
-        }
-        output += d;
+void digitButton(std::string& output, char d, ImVec2 wSize, int base, ImGuiStyle& style) {
+    ImVec4 color1 = style.Colors[ImGuiCol_Button];
+    ImVec4 color2 = style.Colors[ImGuiCol_Text];
+    if (digitToInt(d) >= base) {
+        float w1 = style.Colors[ImGuiCol_Button].w;
+        float w2 = style.Colors[ImGuiCol_Text].w;
+        style.Colors[ImGuiCol_Button] = style.Colors[ImGuiCol_Button] * 0.7f;
+        style.Colors[ImGuiCol_Text] = style.Colors[ImGuiCol_Text] * 0.6f;
+
+        style.Colors[ImGuiCol_Button].w = w1;
+        style.Colors[ImGuiCol_Text].w = w2;
     }
+    if (ImGui::Button(std::string(1, d).c_str(), ImVec2(9000 / dpi, 9000 / dpi))) {
+        if (digitToInt(d) >= base || ((output == "0" || output.back() == '0' && ops.find(output[output.size() - 2]) != ops.end()) && d == '0')){}
+        else {
+            if (output == "0") {
+                output = "";
+            }
+            output += d;
+        }
+    }
+    style.Colors[ImGuiCol_Button] = color1;
+    style.Colors[ImGuiCol_Text] = color2;
 }
 
 void operatorButton(std::string& output, char oper, bool& op, bool& commaAlready, int base, int accuracy, ImVec2 wSize) {
-    if (ImGui::Button(std::string(1, oper).c_str(), ImVec2(40 * wSize.x / 1920, 40 * wSize.y / 1440))) {
+    if (ImGui::Button(std::string(1, oper).c_str(), ImVec2(9000 / dpi, 9000 / dpi))) {
         if (ops.find(output.back()) != ops.end()) {
             output.back() = oper;
         }
@@ -217,6 +235,8 @@ int main(int, char**)
 
     // Our state
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    ImGuiStyle& style = ImGui::GetStyle();
+
     std::string output = "0";
     int base = 10;
     int accuracy = 0;
@@ -249,54 +269,55 @@ int main(int, char**)
         glfwGetWindowSize(window, &tmp1, &tmp2);
         ImVec2 wSize(tmp1, tmp2);
 
-        ImGui::SetNextWindowSize({ 0.15f * wSize.x, 0.25f * wSize.y });
+        ImGui::SetNextWindowSize({ 70000.f / dpi, 70000.f / dpi });
         ImGui::Begin("Calculator");
-        ImGui::SetWindowFontScale(1.2);
+        ImGui::SetWindowFontScale(250.f / dpi);
 
+        ImGui::SetNextItemWidth(40000.f / dpi);
         InputTextWithHint("Calculations", "", output, ImGuiInputTextFlags_ReadOnly);
 
-        if (ImGui::Button("Cl", ImVec2(40 * wSize.x / 1920, 40 * wSize.y / 1440))) {
+        if (ImGui::Button("Cl", ImVec2(9000 / dpi, 9000 / dpi))) {
             output = "0";
 			commaAlready = false;
 			op = false;
         } ImGui::SameLine();
-        if (ImGui::Button("NS", ImVec2(40 * wSize.x / 1920, 40 * wSize.y / 1440))) {
+        if (ImGui::Button("NS", ImVec2(9000 / dpi, 9000 / dpi))) {
             baseTmp = base;
             openNumSysWindow = true;
         } ImGui::SameLine();
-        if (ImGui::Button("Ac", ImVec2(40 * wSize.x / 1920, 40 * wSize.y / 1440))) {
+        if (ImGui::Button("Ac", ImVec2(9000 / dpi, 9000 / dpi))) {
             accuracyTmp = accuracy;
             openAccuracyWindow = true;
 		} ImGui::SameLine();
-        if (ImGui::Button(".", ImVec2(40 * wSize.x / 1920, 40 * wSize.y / 1440)) && !commaAlready) {
+        if (ImGui::Button(".", ImVec2(9000 / dpi, 9000 / dpi)) && !commaAlready) {
             output += '.';
             commaAlready = true;
         } ImGui::SameLine();
-        if (ImGui::Button("=", ImVec2(40 * wSize.x / 1920, 40 * wSize.y / 1440)) && ops.find(output.back()) == ops.end() && op) {
+        if (ImGui::Button("=", ImVec2(9000 / dpi, 9000 / dpi)) && ops.find(output.back()) == ops.end() && op) {
             eval(output, base, accuracy);
             op = false;
             commaAlready = false;
         }
 
-        if (digitToInt('C') < base) { digitButton(output, 'C', wSize);  }
-		if (digitToInt('D') < base) { ImGui::SameLine(); digitButton(output, 'D', wSize); }
-        if (digitToInt('E') < base) { ImGui::SameLine(); digitButton(output, 'E', wSize); }
-        if (digitToInt('F') < base) { ImGui::SameLine(); digitButton(output, 'F', wSize); }
+        digitButton(output, 'C', wSize, base, style);
+		ImGui::SameLine(); digitButton(output, 'D', wSize, base, style);
+        ImGui::SameLine(); digitButton(output, 'E', wSize, base, style);
+        ImGui::SameLine(); digitButton(output, 'F', wSize, base, style);
 
-        if (digitToInt('8') < base) { digitButton(output, '8', wSize); }
-        if (digitToInt('9') < base) { ImGui::SameLine(); digitButton(output, '9', wSize); }
-        if (digitToInt('A') < base) { ImGui::SameLine(); digitButton(output, 'A', wSize); }
-        if (digitToInt('B') < base) { ImGui::SameLine(); digitButton(output, 'B', wSize); }
+        digitButton(output, '8', wSize, base, style);
+        ImGui::SameLine(); digitButton(output, '9', wSize, base, style);
+        ImGui::SameLine(); digitButton(output, 'A', wSize, base, style);
+        ImGui::SameLine(); digitButton(output, 'B', wSize, base, style);
 
-        if (digitToInt('4') < base) { digitButton(output, '4', wSize); }
-        if (digitToInt('5') < base) { ImGui::SameLine(); digitButton(output, '5', wSize); }
-        if (digitToInt('6') < base) { ImGui::SameLine(); digitButton(output, '6', wSize); }
-        if (digitToInt('7') < base) { ImGui::SameLine(); digitButton(output, '7', wSize); }
+        digitButton(output, '4', wSize, base, style);
+        ImGui::SameLine(); digitButton(output, '5', wSize, base, style);
+        ImGui::SameLine(); digitButton(output, '6', wSize, base, style);
+        ImGui::SameLine(); digitButton(output, '7', wSize, base, style);
 
-        if (digitToInt('0') < base) { digitButton(output, '0', wSize); }
-        if (digitToInt('1') < base) { ImGui::SameLine(); digitButton(output, '1', wSize); }
-        if (digitToInt('2') < base) { ImGui::SameLine(); digitButton(output, '2', wSize); }
-        if (digitToInt('3') < base) { ImGui::SameLine(); digitButton(output, '3', wSize); }
+        digitButton(output, '0', wSize, base, style);
+        ImGui::SameLine(); digitButton(output, '1', wSize, base, style);
+        ImGui::SameLine(); digitButton(output, '2', wSize, base, style);
+        ImGui::SameLine(); digitButton(output, '3', wSize, base, style);
         
 		operatorButton(output, '+', op, commaAlready, base, accuracy, wSize); ImGui::SameLine();
         operatorButton(output, '-', op, commaAlready, base, accuracy, wSize); ImGui::SameLine();
@@ -306,6 +327,7 @@ int main(int, char**)
 
         if (openNumSysWindow) {
             ImGui::Begin("Numerical system");
+            ImGui::SetWindowFontScale(250.f / dpi);
 
             ImGui::Text("Choose the base (from 2 to 16 only)");
             ImGui::InputInt("Base", &baseTmp, 1, 4);
@@ -323,6 +345,7 @@ int main(int, char**)
 
         if (openAccuracyWindow) {
             ImGui::Begin("Accuracy");
+            ImGui::SetWindowFontScale(250.f / dpi);
 
             ImGui::Text("Number of decimal places (from 0 to 5 only)");
             ImGui::InputInt("Accuracy", &accuracyTmp, 1, 1);
