@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <set>
 #include <cmath>
-#include <Windows.h>
 #include <cstdlib>
 
 #include <imgui.h>
@@ -19,6 +18,13 @@
 #include <GLES2/gl2.h>
 #endif
 #include <GLFW/glfw3.h>
+#include <iostream>
+
+// #ifdef Windows
+//     #include <Windows.h>
+// #elif APPLE || LINUX 
+//     #include <CoreGraphics/CoreGraphics.h>
+// #endif
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1900) && !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
 #pragma comment(lib, "legacy_stdio_definitions")
@@ -49,8 +55,28 @@ void InputTextWithHint(const std::string& label, const std::string& hint, std::s
     data = buffer;
 }
 
+void GetDPI(GLFWwindow* window, int& dpi){
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+
+    // Get the physical size of the monitor
+    int width_mm, height_mm;
+    glfwGetMonitorPhysicalSize(monitor, &width_mm, &height_mm);
+
+    // Get the content scale of the monitor
+    float xscale, yscale;
+    glfwGetMonitorContentScale(monitor, &xscale, &yscale);
+
+    // Calculate the DPI
+    float dpiX = xscale *   25.4f; // Inches per millimeter times the scale factor
+    float dpiY = yscale *   25.4f; // Inches per millimeter times the scale factor
+    // std::cout << dpiX << " " << dpiY << std::endl;
+    dpi = std::max(dpiX, dpiY);
+
+}
+
+
 std::set<char> ops = { '+', '-', 'X', '/' };
-int dpi = GetDpiForSystem();
+int dpi = 100;
 bool egypt = false;
 
 char intToDigit(const int& i) {
@@ -280,8 +306,8 @@ int main(int, char**)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 #endif
-
     GLFWwindow* window = glfwCreateWindow(3000, 2000, "Dear ImGui GLFW+OpenGL3 example", nullptr, nullptr);
+    GetDPI(window, dpi); // Get DPI
     if (window == nullptr)
         return 1;
     glfwMakeContextCurrent(window);
