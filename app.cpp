@@ -1,4 +1,3 @@
-#define NOMINMAX
 #include <vector>
 #include <string>
 #include <sstream>
@@ -26,6 +25,8 @@
 #ifdef __EMSCRIPTEN__
 #include "../libs/emscripten/emscripten_mainloop_stub.h"
 #endif
+
+#define NOMINMAX
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -273,7 +274,7 @@ void operatorButton(std::string& output, char oper, bool& op, bool& commaAlready
 }
 
 
-int main(int, char**)
+int main(int argc, char* argv[])
 {
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
@@ -295,7 +296,8 @@ int main(int, char**)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 #endif
-    GLFWwindow* window = glfwCreateWindow(3000, 2000, "Dear ImGui GLFW+OpenGL3 example", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(2.61f * dpi, 2.82f * dpi, "Calculator", nullptr, nullptr);
+
     dpi = 20 * GetDPI(window);
     if (window == nullptr)
         return 1;
@@ -351,12 +353,14 @@ int main(int, char**)
         glfwGetWindowSize(window, &tmp1, &tmp2);
         ImVec2 wSize(tmp1, tmp2);
 
-        ImGui::SetNextWindowSize({ 5.f * dpi, 5.f * dpi });
-        ImGui::Begin("Calculator");
+        ImGui::SetNextWindowPos(ImVec2(0, 0));
+        ImGui::SetNextWindowSize({ 3.06f * dpi, 3.3f * dpi });
+		bool open = true;
+        ImGui::Begin("Calculator", &open, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
         ImGui::SetWindowFontScale(dpi / 50.);
 
         ImGui::SetNextItemWidth(2.87f * dpi);
-        InputTextWithHint("Calculations", "", output, ImGuiInputTextFlags_ReadOnly);
+        InputTextWithHint("##Calculations", "", output, ImGuiInputTextFlags_ReadOnly);
 
         if (ImGui::Button("Cl", ImVec2(dpi / 2, dpi / 2))) {
             output = "0";
