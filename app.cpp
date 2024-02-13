@@ -48,28 +48,24 @@ void InputTextWithHint(const std::string& label, const std::string& hint, std::s
     data = buffer;
 }
 
-void GetDPI(GLFWwindow* window, int& dpi){
+float GetDPI(GLFWwindow* window){
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 
-    // Get the physical size of the monitor
     int width_mm, height_mm;
     glfwGetMonitorPhysicalSize(monitor, &width_mm, &height_mm);
 
-    // Get the content scale of the monitor
-    float xscale, yscale;
-    glfwGetMonitorContentScale(monitor, &xscale, &yscale);
+    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+    int screenWidth = mode->width;
+    int screenHeight = mode->height;
 
-    // Calculate the DPI
-    float dpiX = xscale *   25.4f; // Inches per millimeter times the scale factor
-    float dpiY = yscale *   25.4f; // Inches per millimeter times the scale factor
-    // std::cout << dpiX << " " << dpiY << std::endl;
-    dpi = std::max(dpiX, dpiY);
-
+    float dpiX = (float)screenWidth / width_mm;
+    float dpiY = (float)screenHeight / height_mm;
+    return std::max(dpiX, dpiY);
 }
 
 
 std::set<char> ops = { '+', '-', 'X', '/' };
-int dpi = 100;
+float dpi = 100;
 bool egypt = false;
 
 char intToDigit(const int& i) {
@@ -300,7 +296,7 @@ int main(int, char**)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 #endif
     GLFWwindow* window = glfwCreateWindow(3000, 2000, "Dear ImGui GLFW+OpenGL3 example", nullptr, nullptr);
-    GetDPI(window, dpi); // Get DPI
+    dpi = 20 * GetDPI(window);
     if (window == nullptr)
         return 1;
     glfwMakeContextCurrent(window);
@@ -359,7 +355,7 @@ int main(int, char**)
         ImGui::Begin("Calculator");
         ImGui::SetWindowFontScale(dpi / 50.);
 
-        ImGui::SetNextItemWidth(2.8f * dpi);
+        ImGui::SetNextItemWidth(2.87f * dpi);
         InputTextWithHint("Calculations", "", output, ImGuiInputTextFlags_ReadOnly);
 
         if (ImGui::Button("Cl", ImVec2(dpi / 2, dpi / 2))) {
@@ -397,30 +393,33 @@ int main(int, char**)
             op = false;
             commaAlready = false;
         }
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + dpi / 50);
 
-        digitButton(output, 'C', wSize, base, style);
-		ImGui::SameLine(); digitButton(output, 'D', wSize, base, style);
-        ImGui::SameLine(); digitButton(output, 'E', wSize, base, style);
-        ImGui::SameLine(); digitButton(output, 'F', wSize, base, style);
+        digitButton(output, 'C', wSize, base, style); ImGui::SameLine();
+		digitButton(output, 'D', wSize, base, style); ImGui::SameLine();
+        digitButton(output, 'E', wSize, base, style); ImGui::SameLine();
+        digitButton(output, 'F', wSize, base, style); ImGui::SameLine();
+        operatorButton(output, '+', op, commaAlready, base, accuracy, wSize, style);
+		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + dpi / 50);
 
-        digitButton(output, '8', wSize, base, style);
-        ImGui::SameLine(); digitButton(output, '9', wSize, base, style);
-        ImGui::SameLine(); digitButton(output, 'A', wSize, base, style);
-        ImGui::SameLine(); digitButton(output, 'B', wSize, base, style);
+        digitButton(output, '8', wSize, base, style); ImGui::SameLine();
+        digitButton(output, '9', wSize, base, style); ImGui::SameLine();
+        digitButton(output, 'A', wSize, base, style); ImGui::SameLine();
+        digitButton(output, 'B', wSize, base, style); ImGui::SameLine();
+        operatorButton(output, '-', op, commaAlready, base, accuracy, wSize, style);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + dpi / 50);
 
-        digitButton(output, '4', wSize, base, style);
-        ImGui::SameLine(); digitButton(output, '5', wSize, base, style);
-        ImGui::SameLine(); digitButton(output, '6', wSize, base, style);
-        ImGui::SameLine(); digitButton(output, '7', wSize, base, style);
+		digitButton(output, '4', wSize, base, style); ImGui::SameLine();
+		digitButton(output, '5', wSize, base, style); ImGui::SameLine();
+		digitButton(output, '6', wSize, base, style); ImGui::SameLine();
+		digitButton(output, '7', wSize, base, style); ImGui::SameLine();
+        operatorButton(output, '*', op, commaAlready, base, accuracy, wSize, style);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + dpi / 50);
 
-        digitButton(output, '0', wSize, base, style);
-        ImGui::SameLine(); digitButton(output, '1', wSize, base, style);
-        ImGui::SameLine(); digitButton(output, '2', wSize, base, style);
-        ImGui::SameLine(); digitButton(output, '3', wSize, base, style);
-        
-		operatorButton(output, '+', op, commaAlready, base, accuracy, wSize, style); ImGui::SameLine();
-        operatorButton(output, '-', op, commaAlready, base, accuracy, wSize, style); ImGui::SameLine();
-        operatorButton(output, '*', op, commaAlready, base, accuracy, wSize, style); ImGui::SameLine();
+		digitButton(output, '0', wSize, base, style); ImGui::SameLine();
+		digitButton(output, '1', wSize, base, style); ImGui::SameLine();
+		digitButton(output, '2', wSize, base, style); ImGui::SameLine();
+		digitButton(output, '3', wSize, base, style); ImGui::SameLine();
         operatorButton(output, '/', op, commaAlready, base, accuracy, wSize, style);
 
 
