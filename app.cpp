@@ -18,13 +18,6 @@
 #include <GLES2/gl2.h>
 #endif
 #include <GLFW/glfw3.h>
-#include <iostream>
-
-// #ifdef Windows
-//     #include <Windows.h>
-// #elif APPLE || LINUX 
-//     #include <CoreGraphics/CoreGraphics.h>
-// #endif
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1900) && !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
 #pragma comment(lib, "legacy_stdio_definitions")
