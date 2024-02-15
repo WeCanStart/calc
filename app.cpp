@@ -1,3 +1,5 @@
+// БПМ-22-3 Хапилов Артём, Клычков Степан, Маслов Никита
+
 #include <vector>
 #include <string>
 #include <sstream>
@@ -109,7 +111,7 @@ int egyptToDec(std::string numb) {
 }
 
 
-void eval(std::string& output, const int& base, const int& accuracy) {
+void eval(std::string& output, const int& base, const int& accuracy, std::string& decOutput) {
     bool commaAlready = false;
     bool first = true;
 
@@ -161,12 +163,15 @@ void eval(std::string& output, const int& base, const int& accuracy) {
     if (egypt) {
         if (op == '*') {
 			output = decToEgypt(egyptToDec(egyptStrL) * egyptToDec(egyptStrR));
+            decOutput = std::to_string(egyptToDec(egyptStrL) * egyptToDec(egyptStrR));
         }
         if (op == '+') {
 			output = decToEgypt(egyptToDec(egyptStrL) + egyptToDec(egyptStrR));
+            decOutput = std::to_string(egyptToDec(egyptStrL) + egyptToDec(egyptStrR));
         }
         if (op == '-') {
 			output = decToEgypt(egyptToDec(egyptStrL) - egyptToDec(egyptStrR));
+            decOutput = std::to_string(egyptToDec(egyptStrL) - egyptToDec(egyptStrR));
         }
     }
     else {
@@ -187,31 +192,57 @@ void eval(std::string& output, const int& base, const int& accuracy) {
             dAns = std::abs(dAns);
         }
         long double maxPower = 1.f / std::powl(base, accuracy);
+        long double maxPowerDec = 1.f / std::powl(10, accuracy);
         if (dAns > maxPower) { //looks crazy, but it works
             while (dAns > maxPower) {
                 maxPower *= base;
             }
             maxPower /= base;
         }
+        if (dAns > maxPowerDec) { //looks crazy, but it works
+            while (dAns > maxPowerDec) {
+                maxPowerDec *= 10;
+            }
+            maxPowerDec /= 10;
+        }
         output = "";
+        decOutput = "";
         commaAlready = false;
         if (maxPower < 0.9) {
             output += '0';
-            if (accuracy) output += '.';
+            decOutput += '0';
+            if (accuracy) { output += '.'; decOutput += '.'; }
             commaAlready = true;
         }
         long double dAnsCp = dAns;
+        long double dAnsCpDec = dAns;
         maxPower = std::max(maxPower, 1. / (long double)base);
+        maxPowerDec = std::max(maxPowerDec, 1. / (long double)10);
+        
         while (maxPower * 1.5 > 1.f / std::powl(base, accuracy)) {
             int digit = 0;
             while (dAnsCp > maxPower) {
                 dAnsCp -= maxPower;
                 ++digit;
             }
-            maxPower /= base;
             output += intToDigit(digit);
+            maxPower /= base;
             if (maxPower < 0.99 && !commaAlready && accuracy) {
-                output += ".";
+                output += '.';
+                commaAlready = true;
+            }
+        }
+        commaAlready = false;
+        while (maxPowerDec * 1.5 > 1.f / std::powl(10, accuracy)) {
+            int digit = 0;
+            while (dAnsCpDec > maxPowerDec) {
+                dAnsCpDec -= maxPowerDec;
+                ++digit;
+            }
+            decOutput += (digit + '0');
+            maxPowerDec /= 10;
+            if (maxPowerDec < 0.99 && !commaAlready && accuracy) {
+                decOutput += '.';
                 commaAlready = true;
             }
         }
@@ -244,7 +275,7 @@ void digitButton(std::string& output, char d, ImVec2 wSize, int base, ImGuiStyle
     style.Colors[ImGuiCol_Text] = color2;
 }
 
-void operatorButton(std::string& output, char oper, bool& op, bool& commaAlready, int base, int accuracy, ImVec2 wSize, ImGuiStyle& style) {
+void operatorButton(std::string& output, char oper, bool& op, bool& commaAlready, int base, int accuracy, ImVec2 wSize, ImGuiStyle& style, std::string& decOutput) {
     ImVec4 color1 = style.Colors[ImGuiCol_Button];
     ImVec4 color2 = style.Colors[ImGuiCol_Text];
     if (egypt && oper == '/') {
@@ -262,7 +293,7 @@ void operatorButton(std::string& output, char oper, bool& op, bool& commaAlready
         }
         else {
             if (op) {
-                eval(output, base, accuracy);
+                eval(output, base, accuracy, decOutput);
             }
             commaAlready = false;
             op = true;
@@ -296,7 +327,7 @@ int main(int argc, char* argv[])
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 #endif
-    GLFWwindow* window = glfwCreateWindow(2.61f * dpi, 2.82f * dpi, "Calculator", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(3.f * dpi, 3.2f * dpi, "Calculator", nullptr, nullptr);
 
     dpi = 20 * GetDPI(window);
     if (window == nullptr)
@@ -322,6 +353,7 @@ int main(int argc, char* argv[])
     ImGuiStyle& style = ImGui::GetStyle();
 
     std::string output = "0";
+    std::string decOutput = "0";
     int base = 10;
     int accuracy = 0;
 
@@ -354,13 +386,15 @@ int main(int argc, char* argv[])
         ImVec2 wSize(tmp1, tmp2);
 
         ImGui::SetNextWindowPos(ImVec2(0, 0));
-        ImGui::SetNextWindowSize({ 3.06f * dpi, 3.3f * dpi });
+        ImGui::SetNextWindowSize({ 3.06f * dpi, 3.9f * dpi });
 		bool open = true;
         ImGui::Begin("Calculator", &open, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
         ImGui::SetWindowFontScale(dpi / 50.);
 
         ImGui::SetNextItemWidth(2.87f * dpi);
         InputTextWithHint("##Calculations", "", output, ImGuiInputTextFlags_ReadOnly);
+        ImGui::SetNextItemWidth(2.87f * dpi);
+        InputTextWithHint("##Dec Result", "", decOutput, ImGuiInputTextFlags_ReadOnly);
 
         if (ImGui::Button("Cl", ImVec2(dpi / 2, dpi / 2))) {
             output = "0";
@@ -386,14 +420,14 @@ int main(int argc, char* argv[])
             style.Colors[ImGuiCol_Button].w = w1;
             style.Colors[ImGuiCol_Text].w = w2;
         }
-        if (ImGui::Button(".", ImVec2(dpi / 2, dpi / 2)) && !commaAlready) {
+        if (ImGui::Button(".", ImVec2(dpi / 2, dpi / 2)) && !commaAlready && !egypt) {
             output += '.';
             commaAlready = true;
         } ImGui::SameLine();
         style.Colors[ImGuiCol_Button] = color1;
         style.Colors[ImGuiCol_Text] = color2;
         if (ImGui::Button("=", ImVec2(dpi / 2, dpi / 2)) && ops.find(output.back()) == ops.end() && op) {
-            eval(output, base, accuracy);
+            eval(output, base, accuracy, decOutput);
             op = false;
             commaAlready = false;
         }
@@ -403,35 +437,37 @@ int main(int argc, char* argv[])
 		digitButton(output, 'D', wSize, base, style); ImGui::SameLine();
         digitButton(output, 'E', wSize, base, style); ImGui::SameLine();
         digitButton(output, 'F', wSize, base, style); ImGui::SameLine();
-        operatorButton(output, '+', op, commaAlready, base, accuracy, wSize, style);
+        operatorButton(output, '+', op, commaAlready, base, accuracy, wSize, style, decOutput);
 		ImGui::SetCursorPosY(ImGui::GetCursorPosY() + dpi / 50);
 
         digitButton(output, '8', wSize, base, style); ImGui::SameLine();
         digitButton(output, '9', wSize, base, style); ImGui::SameLine();
         digitButton(output, 'A', wSize, base, style); ImGui::SameLine();
         digitButton(output, 'B', wSize, base, style); ImGui::SameLine();
-        operatorButton(output, '-', op, commaAlready, base, accuracy, wSize, style);
+        operatorButton(output, '-', op, commaAlready, base, accuracy, wSize, style, decOutput);
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + dpi / 50);
 
 		digitButton(output, '4', wSize, base, style); ImGui::SameLine();
 		digitButton(output, '5', wSize, base, style); ImGui::SameLine();
 		digitButton(output, '6', wSize, base, style); ImGui::SameLine();
 		digitButton(output, '7', wSize, base, style); ImGui::SameLine();
-        operatorButton(output, '*', op, commaAlready, base, accuracy, wSize, style);
+        operatorButton(output, '*', op, commaAlready, base, accuracy, wSize, style, decOutput);
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + dpi / 50);
 
 		digitButton(output, '0', wSize, base, style); ImGui::SameLine();
 		digitButton(output, '1', wSize, base, style); ImGui::SameLine();
 		digitButton(output, '2', wSize, base, style); ImGui::SameLine();
 		digitButton(output, '3', wSize, base, style); ImGui::SameLine();
-        operatorButton(output, '/', op, commaAlready, base, accuracy, wSize, style);
+        operatorButton(output, '/', op, commaAlready, base, accuracy, wSize, style, decOutput);
 
 
         if (openNumSysWindow) {
+            ImGui::SetNextWindowPos(ImVec2(0, 0));
             ImGui::Begin("Numerical system");
             ImGui::SetWindowFontScale(dpi / 50.);
 
             ImGui::Text("Choose the base (from 2 to 16 only)");
+            ImGui::SetNextItemWidth(2.f * dpi);
             ImGui::InputInt("Base", &baseTmp, 1, 4); ImGui::SameLine();
             ImGui::Checkbox("Egyptian NS", &egypt);
             if (ImGui::Button("Cancel")) {
@@ -444,16 +480,21 @@ int main(int argc, char* argv[])
                 op = false;
                 commaAlready = false;
                 output = "0";
+                if (egypt) {
+                    accuracy = 0;
+                }
             }
 
             ImGui::End();
         }
 
         if (openAccuracyWindow) {
+            ImGui::SetNextWindowPos(ImVec2(0, 0));
             ImGui::Begin("Accuracy");
             ImGui::SetWindowFontScale(dpi / 50.);
 
             ImGui::Text("Number of decimal places (from 0 to 5 only)");
+            ImGui::SetNextItemWidth(2.f * dpi);
             ImGui::InputInt("Accuracy", &accuracyTmp, 1, 1);
             if (ImGui::Button("Cancel")) {
                 openAccuracyWindow = false;
