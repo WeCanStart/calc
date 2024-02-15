@@ -398,6 +398,7 @@ int main(int argc, char* argv[])
 
         if (ImGui::Button("Cl", ImVec2(dpi / 2, dpi / 2))) {
             output = "0";
+            decOutput = "0";
 			commaAlready = false;
 			op = false;
         } ImGui::SameLine();
