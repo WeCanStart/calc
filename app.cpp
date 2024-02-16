@@ -386,7 +386,7 @@ int main(int argc, char* argv[])
         ImVec2 wSize(tmp1, tmp2);
 
         ImGui::SetNextWindowPos(ImVec2(0, 0));
-        ImGui::SetNextWindowSize({ 3.06f * dpi, 3.9f * dpi });
+        ImGui::SetNextWindowSize({ 3.66f * dpi, 3.9f * dpi });
 		bool open = true;
         ImGui::Begin("Calculator", &open, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
         ImGui::SetWindowFontScale(dpi / 50.);
